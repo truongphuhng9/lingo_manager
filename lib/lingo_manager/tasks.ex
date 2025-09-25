@@ -107,6 +107,60 @@ defmodule LingoManager.Tasks do
   end
 
   @doc """
+  Returns paginated tasks for admin (all tasks) or user (user tasks).
+  """
+  def list_tasks_paginated(user, opts \\ []) do
+    page = Keyword.get(opts, :page, 1)
+    per_page = Keyword.get(opts, :per_page, 10)
+    search_task_id = Keyword.get(opts, :search_task_id, nil)
+    offset = (page - 1) * per_page
+
+    base_query = if user.role == "admin" do
+      Task
+    else
+      Task |> where([t], t.assigned_user_id == ^user.id)
+    end
+
+    query = base_query
+    |> preload([:assigned_user, :resource])
+    |> order_by([t], desc: t.inserted_at)
+
+    # Add search filter if provided
+    query = if search_task_id && String.trim(search_task_id) != "" do
+      query |> where([t], ilike(t.task_id, ^"%#{search_task_id}%"))
+    else
+      query
+    end
+
+    tasks = query
+    |> limit(^per_page)
+    |> offset(^offset)
+    |> Repo.all()
+
+    # Count query with same filters
+    count_query = base_query
+    count_query = if search_task_id && String.trim(search_task_id) != "" do
+      count_query |> where([t], ilike(t.task_id, ^"%#{search_task_id}%"))
+    else
+      count_query
+    end
+
+    total_count = count_query |> Repo.aggregate(:count, :id)
+    total_pages = ceil(total_count / per_page)
+
+    %{
+      tasks: tasks,
+      page: page,
+      per_page: per_page,
+      total_count: total_count,
+      total_pages: total_pages,
+      has_next: page < total_pages,
+      has_prev: page > 1,
+      search_task_id: search_task_id
+    }
+  end
+
+  @doc """
   Gets a single task.
   """
   def get_task!(id) do

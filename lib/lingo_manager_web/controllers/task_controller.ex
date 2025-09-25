@@ -9,16 +9,28 @@ defmodule LingoManagerWeb.TaskController do
   def index(conn, params) do
     current_user = conn.assigns.current_user
     page = String.to_integer(params["page"] || "1")
+    search_task_id = params["search_task_id"]
 
-    tasks_pagination = Tasks.list_user_tasks_paginated(current_user.id, page: page, per_page: 10)
-    active_task = Tasks.get_active_task_for_user(current_user.id)
+    tasks_pagination = Tasks.list_tasks_paginated(current_user,
+      page: page,
+      per_page: 10,
+      search_task_id: search_task_id
+    )
+
+    active_task = if current_user.role != "admin" do
+      Tasks.get_active_task_for_user(current_user.id)
+    else
+      nil
+    end
+
     active_time_log = if active_task, do: TimeLogs.get_active_time_log_for_user(current_user.id), else: nil
 
     render(conn, :index,
       tasks_pagination: tasks_pagination,
       active_task: active_task,
       active_time_log: active_time_log,
-      can_create_task: Tasks.can_create_task?(current_user.id)
+      can_create_task: Tasks.can_create_task?(current_user.id),
+      search_task_id: search_task_id
     )
   end
 

@@ -1,6 +1,12 @@
 <.header>
-  My Tasks
-  <:subtitle>Manage your tasks and time tracking</:subtitle>
+  <%= if @current_user.role == "admin", do: "All Tasks", else: "My Tasks" %>
+  <:subtitle>
+    <%= if @current_user.role == "admin" do %>
+      View and manage all tasks in the system
+    <% else %>
+      Manage your tasks and time tracking
+    <% end %>
+  </:subtitle>
   <:actions>
     <%= if @can_create_task do %>
       <.link href={~p"/tasks/new"}>
@@ -13,6 +19,23 @@
     <% end %>
   </:actions>
 </.header>
+
+<div class="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
+  <.form :let={f} for={%{}} action={~p"/tasks"} method="get" class="flex items-end gap-4">
+    <div class="flex-1">
+      <.input field={f[:search_task_id]} type="text" label="Search by Task ID"
+             placeholder="Enter task ID to search" value={@search_task_id} />
+    </div>
+    <div class="flex gap-2">
+      <.button type="submit" class="bg-blue-600 hover:bg-blue-700">Search</.button>
+      <%= if @search_task_id do %>
+        <.link href={~p"/tasks"} class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+          Clear
+        </.link>
+      <% end %>
+    </div>
+  </.form>
+</div>
 
 <%= if @active_task do %>
   <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -45,6 +68,15 @@
 <.table id="tasks" rows={@tasks_pagination.tasks} row_click={&JS.navigate(~p"/tasks/#{&1}")}>
   <:col :let={task} label="Task ID"><%= task.task_id %></:col>
   <:col :let={task} label="Resource"><%= task.resource.name %></:col>
+  <:col :let={task} label="Assigned User">
+    <%= if @current_user.role == "admin" do %>
+      <%= if task.assigned_user do %>
+        <%= task.assigned_user.name %>
+      <% else %>
+        <span class="text-gray-500">Unassigned</span>
+      <% end %>
+    <% end %>
+  </:col>
   <:col :let={task} label="Status">
     <span class={[
       "inline-flex px-2 text-xs font-semibold rounded-full",
@@ -72,18 +104,75 @@
     <div class="sr-only">
       <.link navigate={~p"/tasks/#{task}"}>Show</.link>
     </div>
-    <%= if task.status == "pending" do %>
-      <.link href={~p"/tasks/#{task.id}/start"} method="post" class="text-blue-600 hover:text-blue-900">
-        Start
+    <%= if @current_user.role == "admin" do %>
+      <.link navigate={~p"/tasks/#{task}/edit"} class="text-indigo-600 hover:text-indigo-900">
+        Edit
       </.link>
     <% else %>
-      <%= if task.status == "in_progress" do %>
-        <.link href={~p"/tasks/#{task.id}/start_time_log"} method="post" class="text-green-600 hover:text-green-900">
-          Log Time
+      <%= if task.status == "pending" do %>
+        <.link href={~p"/tasks/#{task.id}/start"} method="post" class="text-blue-600 hover:text-blue-900">
+          Start
         </.link>
+      <% else %>
+        <%= if task.status == "in_progress" do %>
+          <.link href={~p"/tasks/#{task.id}/start_time_log"} method="post" class="text-green-600 hover:text-green-900">
+            Log Time
+          </.link>
+        <% end %>
       <% end %>
     <% end %>
   </:action>
 </.table>
 
-<.pagination pagination={@tasks_pagination} base_path="/tasks" />
+<%
+  search_params = if @search_task_id, do: "search_task_id=#{@search_task_id}", else: ""
+  base_path_with_search = if search_params != "", do: "/tasks?#{search_params}&", else: "/tasks?"
+%>
+
+<div class="mt-6 flex items-center justify-between">
+  <div class="text-sm text-gray-700">
+    Showing <%= (@tasks_pagination.page - 1) * @tasks_pagination.per_page + 1 %> to
+    <%= min(@tasks_pagination.page * @tasks_pagination.per_page, @tasks_pagination.total_count) %>
+    of <%= @tasks_pagination.total_count %> results
+    <%= if @search_task_id do %>
+      for "<%= @search_task_id %>"
+    <% end %>
+  </div>
+
+  <nav class="flex items-center space-x-2" aria-label="Pagination">
+    <%= if @tasks_pagination.has_prev do %>
+      <.link navigate={"#{base_path_with_search}page=#{@tasks_pagination.page - 1}"}
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+        Previous
+      </.link>
+    <% else %>
+      <span class="px-3 py-2 text-sm font-medium text-gray-300 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed">
+        Previous
+      </span>
+    <% end %>
+
+    <%= for page_num <- max(1, @tasks_pagination.page - 2)..min(@tasks_pagination.total_pages, @tasks_pagination.page + 2) do %>
+      <%= if page_num == @tasks_pagination.page do %>
+        <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md">
+          <%= page_num %>
+        </span>
+      <% else %>
+        <.link navigate={"#{base_path_with_search}page=#{page_num}"}
+              class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+          <%= page_num %>
+        </.link>
+      <% end %>
+    <% end %>
+
+    <%= if @tasks_pagination.has_next do %>
+      <.link navigate={"#{base_path_with_search}page=#{@tasks_pagination.page + 1}"}
+            class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+        Next
+      </.link>
+    <% else %>
+      <span class="px-3 py-2 text-sm font-medium text-gray-300 bg-gray-100 border border-gray-300 rounded-md cursor-not-allowed">
+        Next
+      </span>
+    <% end %>
+  </nav>
+</div>

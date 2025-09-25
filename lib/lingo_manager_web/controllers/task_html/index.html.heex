@@ -1,0 +1,89 @@
+<.header>
+  My Tasks
+  <:subtitle>Manage your tasks and time tracking</:subtitle>
+  <:actions>
+    <%= if @can_create_task do %>
+      <.link href={~p"/tasks/new"}>
+        <.button>New Task</.button>
+      </.link>
+    <% else %>
+      <.link href={~p"/resources"}>
+        <.button class="bg-orange-600 hover:bg-orange-700">Use Resource First</.button>
+      </.link>
+    <% end %>
+  </:actions>
+</.header>
+
+<%= if @active_task do %>
+  <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <h3 class="text-lg font-semibold text-blue-900">Active Task: <%= @active_task.task_id %></h3>
+        <p class="text-blue-700">Resource: <%= @active_task.resource.name %></p>
+        <%= if @active_time_log do %>
+          <p class="text-sm text-blue-600">⏱️ Time logging started at <%= Calendar.strftime(@active_time_log.start_time, "%H:%M") %></p>
+        <% end %>
+      </div>
+      <div class="flex gap-2">
+        <%= if @active_time_log do %>
+          <.link href={~p"/tasks/stop_time_log"} method="post">
+            <.button class="bg-red-600 hover:bg-red-700">Stop Timer</.button>
+          </.link>
+        <% else %>
+          <.link href={~p"/tasks/#{@active_task.id}/start_time_log"} method="post">
+            <.button class="bg-green-600 hover:bg-green-700">Start Timer</.button>
+          </.link>
+        <% end %>
+        <.link href={~p"/tasks/#{@active_task.id}/complete"} method="post" data-confirm="Are you sure you want to complete this task?">
+          <.button class="bg-purple-600 hover:bg-purple-700">Complete Task</.button>
+        </.link>
+      </div>
+    </div>
+  </div>
+<% end %>
+
+<.table id="tasks" rows={@tasks_pagination.tasks} row_click={&JS.navigate(~p"/tasks/#{&1}")}>
+  <:col :let={task} label="Task ID"><%= task.task_id %></:col>
+  <:col :let={task} label="Resource"><%= task.resource.name %></:col>
+  <:col :let={task} label="Status">
+    <span class={[
+      "inline-flex px-2 text-xs font-semibold rounded-full",
+      case task.status do
+        "pending" -> "bg-yellow-100 text-yellow-800"
+        "in_progress" -> "bg-blue-100 text-blue-800"
+        "completed" -> "bg-green-100 text-green-800"
+        "cancelled" -> "bg-gray-100 text-gray-800"
+      end
+    ]}>
+      <%= String.replace(task.status, "_", " ") |> String.capitalize() %>
+    </span>
+  </:col>
+  <:col :let={task} label="Value">$<%= task.task_value_dollars %></:col>
+  <:col :let={task} label="Rate/Hour">$<%= task.rate_per_hour %></:col>
+  <:col :let={task} label="Audio Length">
+    <%= if task.audio_length_minutes do %>
+      <%= task.audio_length_minutes %> min
+    <% else %>
+      <span class="text-gray-500">-</span>
+    <% end %>
+  </:col>
+  <:col :let={task} label="Created"><%= Calendar.strftime(task.inserted_at, "%Y-%m-%d") %></:col>
+  <:action :let={task}>
+    <div class="sr-only">
+      <.link navigate={~p"/tasks/#{task}"}>Show</.link>
+    </div>
+    <%= if task.status == "pending" do %>
+      <.link href={~p"/tasks/#{task.id}/start"} method="post" class="text-blue-600 hover:text-blue-900">
+        Start
+      </.link>
+    <% else %>
+      <%= if task.status == "in_progress" do %>
+        <.link href={~p"/tasks/#{task.id}/start_time_log"} method="post" class="text-green-600 hover:text-green-900">
+          Log Time
+        </.link>
+      <% end %>
+    <% end %>
+  </:action>
+</.table>
+
+<.pagination pagination={@tasks_pagination} base_path="/tasks" />

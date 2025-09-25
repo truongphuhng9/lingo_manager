@@ -1,0 +1,25 @@
+<.header>
+  User <%= @user.name %>
+  <:subtitle>User details</:subtitle>
+  <:actions>
+    <.link href={~p"/admin/users/#{@user}/edit"}>
+      <.button>Edit user</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Name"><%= @user.name %></:item>
+  <:item title="Email"><%= @user.email %></:item>
+  <:item title="Role">
+    <span class={[
+      "inline-flex px-2 text-xs font-semibold rounded-full",
+      if(@user.role == "admin", do: "bg-purple-100 text-purple-800", else: "bg-gray-100 text-gray-800")
+    ]}>
+      <%= String.capitalize(@user.role) %>
+    </span>
+  </:item>
+  <:item title="Created"><%= Calendar.strftime(@user.inserted_at, "%Y-%m-%d %H:%M") %></:item>
+</.list>
+
+<.back navigate={~p"/admin/users"}>Back to users</.back>

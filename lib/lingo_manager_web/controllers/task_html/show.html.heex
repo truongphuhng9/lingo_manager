@@ -1,0 +1,117 @@
+<.header>
+  Task: <%= @task.task_id %>
+  <:subtitle>Task details and time tracking</:subtitle>
+  <:actions>
+    <%= if @task.status == "pending" do %>
+      <.link href={~p"/tasks/#{@task.id}/start"} method="post">
+        <.button class="bg-blue-600 hover:bg-blue-700">Start Task</.button>
+      </.link>
+    <% end %>
+    <%= if @task.status == "in_progress" do %>
+      <.link href={~p"/tasks/#{@task.id}/start_time_log"} method="post">
+        <.button class="bg-green-600 hover:bg-green-700">Start Time Log</.button>
+      </.link>
+      <.link href={~p"/tasks/#{@task.id}/complete"} method="post" data-confirm="Are you sure?">
+        <.button class="bg-purple-600 hover:bg-purple-700">Complete Task</.button>
+      </.link>
+    <% end %>
+  </:actions>
+</.header>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+  <div>
+    <.list>
+      <:item title="Task ID"><%= @task.task_id %></:item>
+      <:item title="Status">
+        <span class={[
+          "inline-flex px-2 text-xs font-semibold rounded-full",
+          case @task.status do
+            "pending" -> "bg-yellow-100 text-yellow-800"
+            "in_progress" -> "bg-blue-100 text-blue-800"
+            "completed" -> "bg-green-100 text-green-800"
+            "cancelled" -> "bg-gray-100 text-gray-800"
+          end
+        ]}>
+          <%= String.replace(@task.status, "_", " ") |> String.capitalize() %>
+        </span>
+      </:item>
+      <:item title="Resource">
+        <div class="flex items-center gap-2">
+          <span><%= @task.resource.name %></span>
+          <span class="inline-flex px-2 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+            <%= String.capitalize(@task.resource.resource_type) %>
+          </span>
+        </div>
+      </:item>
+      <:item title="Task Value">$<%= @task.task_value_dollars %></:item>
+      <:item title="Rate per Hour">$<%= @task.rate_per_hour %></:item>
+      <:item title="Audio Length">
+        <%= if @task.audio_length_minutes do %>
+          <%= @task.audio_length_minutes %> minutes
+        <% else %>
+          <span class="text-gray-500">Not specified</span>
+        <% end %>
+      </:item>
+      <:item title="Created"><%= Calendar.strftime(@task.inserted_at, "%Y-%m-%d %H:%M") %></:item>
+      <:item title="Started">
+        <%= if @task.start_datetime do %>
+          <%= Calendar.strftime(@task.start_datetime, "%Y-%m-%d %H:%M") %>
+        <% else %>
+          <span class="text-gray-500">Not started</span>
+        <% end %>
+      </:item>
+      <:item title="Completed">
+        <%= if @task.finished_at do %>
+          <%= Calendar.strftime(@task.finished_at, "%Y-%m-%d %H:%M") %>
+        <% else %>
+          <span class="text-gray-500">Not completed</span>
+        <% end %>
+      </:item>
+    </.list>
+  </div>
+
+  <div>
+    <h3 class="text-lg font-semibold text-gray-900 mb-4">Time Logs</h3>
+    <%= if length(@time_logs) > 0 do %>
+      <div class="space-y-4">
+        <%= for time_log <- @time_logs do %>
+          <div class="border border-gray-200 rounded-lg p-4">
+            <div class="flex justify-between items-start">
+              <div>
+                <p class="text-sm font-medium">
+                  Started: <%= Calendar.strftime(time_log.start_time, "%Y-%m-%d %H:%M:%S") %>
+                </p>
+                <%= if time_log.end_time do %>
+                  <p class="text-sm text-gray-600">
+                    Ended: <%= Calendar.strftime(time_log.end_time, "%Y-%m-%d %H:%M:%S") %>
+                  </p>
+                  <p class="text-sm font-semibold text-green-600">
+                    Duration: <%= time_log.duration_minutes %> minutes
+                  </p>
+                <% else %>
+                  <p class="text-sm text-blue-600 font-medium">⏱️ Active</p>
+                <% end %>
+                <%= if time_log.notes && String.length(time_log.notes) > 0 do %>
+                  <p class="text-sm text-gray-600 mt-2"><%= time_log.notes %></p>
+                <% end %>
+              </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+
+      <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+        <h4 class="font-semibold text-gray-900 mb-2">Summary</h4>
+        <% total_minutes = LingoManager.Tasks.Task.calculate_total_minutes(@task) %>
+        <% total_earnings = LingoManager.Tasks.Task.calculate_earnings(@task) %>
+        <p class="text-sm">Total Time: <%= total_minutes %> minutes</p>
+        <p class="text-sm">Total Hours: <%= Decimal.div(total_minutes, Decimal.new(60)) |> Decimal.round(2) %></p>
+        <p class="text-sm font-semibold">Estimated Earnings: $<%= total_earnings |> Decimal.round(2) %></p>
+      </div>
+    <% else %>
+      <p class="text-gray-500 text-center py-8">No time logs yet. Start the task to begin tracking time.</p>
+    <% end %>
+  </div>
+</div>
+
+<.back navigate={~p"/tasks"}>Back to tasks</.back>

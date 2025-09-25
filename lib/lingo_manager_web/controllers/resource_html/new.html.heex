@@ -1,0 +1,23 @@
+<.header>
+  New Resource
+  <:subtitle>Create a new resource (account, server, etc.)</:subtitle>
+</.header>
+
+<.simple_form :let={f} for={@changeset} action={~p"/resources"}>
+  <.error :if={@changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+  <.input field={f[:name]} type="text" label="Name" required />
+  <.input field={f[:resource_type]} type="select" label="Type"
+    options={[{"Account", "account"}, {"Server", "server"}, {"Service", "service"}, {"Other", "other"}]}
+    required />
+  <.input field={f[:description]} type="textarea" label="Description" />
+  <.input field={f[:status]} type="select" label="Status"
+    options={[{"Available", "available"}, {"Maintenance", "maintenance"}, {"Disabled", "disabled"}]}
+    value="available" required />
+  <:actions>
+    <.button>Save Resource</.button>
+  </:actions>
+</.simple_form>
+
+<.back navigate={~p"/resources"}>Back to resources</.back>

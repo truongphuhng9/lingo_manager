@@ -1,0 +1,36 @@
+<.header>
+  Select Resource for New Task
+  <:subtitle>Choose which resource/account this task will belong to</:subtitle>
+</.header>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  <%= for resource <- @resources do %>
+    <div class="bg-white rounded-lg border border-gray-200 p-6 hover:border-indigo-300 hover:shadow-md transition-all">
+      <div class="flex items-center mb-4">
+        <div class="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+          <svg class="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <h3 class="text-lg font-semibold text-gray-900"><%= resource.name %></h3>
+          <p class="text-sm text-gray-500">
+            <span class="inline-flex px-2 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+              <%= String.capitalize(resource.resource_type) %>
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <%= if resource.description && String.length(resource.description) > 0 do %>
+        <p class="text-sm text-gray-600 mb-4"><%= resource.description %></p>
+      <% end %>
+
+      <.link href={~p"/tasks/new?resource_id=#{resource.id}"}>
+        <.button class="w-full">Create Task for This Resource</.button>
+      </.link>
+    </div>
+  <% end %>
+</div>
+
+<.back navigate={~p"/tasks"}>Back to tasks</.back>

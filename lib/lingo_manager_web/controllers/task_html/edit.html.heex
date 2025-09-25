@@ -1,0 +1,55 @@
+<.header>
+  Edit Task
+  <:subtitle>Edit task for <%= @resource.name %></:subtitle>
+</.header>
+
+<.simple_form :let={f} for={@changeset} action={~p"/tasks/#{@task}"} method="put">
+  <.error :if={@changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+
+  <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+    <h3 class="font-semibold text-blue-900">Resource: <%= @resource.name %></h3>
+    <p class="text-sm text-blue-700">Type: <%= String.capitalize(@resource.resource_type) %></p>
+    <%= if @resource.description && String.length(@resource.description) > 0 do %>
+      <p class="text-sm text-blue-600"><%= @resource.description %></p>
+    <% end %>
+  </div>
+
+  <.input field={f[:task_id]} type="text" label="Task ID" placeholder="Enter unique task ID" required />
+  <.input field={f[:rate_per_hour]} type="number" label="Rate per Hour (USD)" step="0.01" min="0" required
+    id="rate_per_hour" oninput="calculateTaskValue()" />
+  <.input field={f[:audio_length_minutes]} type="number" label="Audio Length (minutes)" step="0.01" min="0" required
+    id="audio_length_minutes" oninput="calculateTaskValue()" />
+  <.input field={f[:task_value_dollars]} type="number" label="Task Value (USD) - Auto calculated" step="0.01" min="0" readonly
+    id="task_value_dollars" />
+
+  <:actions>
+    <.button>Update Task</.button>
+  </:actions>
+</.simple_form>
+
+<.back navigate={~p"/tasks/#{@task}"}>Back to task</.back>
+
+<script>
+function calculateTaskValue() {
+  const ratePerHourInput = document.getElementById("rate_per_hour");
+  const audioLengthInput = document.getElementById("audio_length_minutes");
+  const taskValueInput = document.getElementById("task_value_dollars");
+
+  if (ratePerHourInput && audioLengthInput && taskValueInput) {
+    const ratePerHour = parseFloat(ratePerHourInput.value) || 0;
+    const audioLength = parseFloat(audioLengthInput.value) || 0;
+
+    // Formula: task_value = rate_per_hour / 60 * audio_length
+    const taskValue = (ratePerHour / 60) * audioLength;
+
+    taskValueInput.value = taskValue.toFixed(2);
+  }
+}
+
+// Calculate initial value when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  calculateTaskValue();
+});
+</script>

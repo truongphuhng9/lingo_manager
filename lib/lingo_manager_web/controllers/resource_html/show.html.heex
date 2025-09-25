@@ -1,0 +1,241 @@
+<.header>
+  Resource: <%= @resource.name %>
+  <:subtitle>Resource details and current status</:subtitle>
+  <:actions>
+    <%= if @current_user.role == "admin" do %>
+      <.link href={~p"/resources/#{@resource}/edit"}>
+        <.button>Edit resource</.button>
+      </.link>
+    <% end %>
+  </:actions>
+</.header>
+
+<.list>
+  <:item title="Name"><%= @resource.name %></:item>
+  <:item title="Type">
+    <span class="inline-flex px-2 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+      <%= String.capitalize(@resource.resource_type) %>
+    </span>
+  </:item>
+  <:item title="Status">
+    <span class={[
+      "inline-flex px-2 text-xs font-semibold rounded-full",
+      case @resource.status do
+        "available" -> "bg-green-100 text-green-800"
+        "in_use" -> "bg-red-100 text-red-800"
+        "maintenance" -> "bg-yellow-100 text-yellow-800"
+        "disabled" -> "bg-gray-100 text-gray-800"
+      end
+    ]}>
+      <%= String.replace(@resource.status, "_", " ") |> String.capitalize() %>
+    </span>
+  </:item>
+  <:item title="Current User">
+    <%= if @resource.current_user do %>
+      <div class="flex items-center gap-2">
+        <span><%= @resource.current_user.name %></span>
+        <span class="text-sm text-gray-500">(<%= @resource.current_user.email %>)</span>
+      </div>
+    <% else %>
+      <span class="text-gray-500">Not assigned</span>
+    <% end %>
+  </:item>
+  <:item title="Description">
+    <%= if @resource.description && String.length(@resource.description) > 0 do %>
+      <%= @resource.description %>
+    <% else %>
+      <span class="text-gray-500">No description</span>
+    <% end %>
+  </:item>
+  <:item title="Unpaid Balance">
+    <%= if @current_user.role == "admin" do %>
+      <span class="text-xl font-semibold text-red-600">
+        $<%= LingoManager.Resources.get_unpaid_balance(@resource.id) |> Decimal.to_string() %>
+      </span>
+    <% end %>
+  </:item>
+  <:item title="Created"><%= Calendar.strftime(@resource.inserted_at, "%Y-%m-%d %H:%M") %></:item>
+  <:item title="Last Updated"><%= Calendar.strftime(@resource.updated_at, "%Y-%m-%d %H:%M") %></:item>
+</.list>
+
+<div class="mt-6 flex items-center gap-4">
+  <%= if @resource.status == "available" do %>
+    <.link href={~p"/resources/#{@resource}/assign"} method="post">
+      <.button class="bg-green-600 hover:bg-green-700">Use This Resource</.button>
+    </.link>
+  <% else %>
+    <%= if @resource.current_user_id == @current_user.id do %>
+      <.link href={~p"/resources/#{@resource}/release"} method="delete">
+        <.button class="bg-red-600 hover:bg-red-700">Release Resource</.button>
+      </.link>
+    <% else %>
+      <.button disabled>Resource In Use</.button>
+    <% end %>
+  <% end %>
+</div>
+
+<%= if @current_user.role == "admin" and @tasks_pagination.total_count > 0 do %>
+  <div class="mt-8">
+    <.header>
+      Tasks for this Resource
+      <:subtitle>All tasks created for <%= @resource.name %></:subtitle>
+    </.header>
+
+    <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+      <div class="flex justify-between items-center">
+        <span class="font-semibold text-green-900">Total Selected Value:</span>
+        <span id="total-selected-value" class="text-xl font-bold text-green-800">$0.00</span>
+      </div>
+      <div class="mt-2 flex gap-2">
+        <button type="button" id="mark-paid-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          Mark Selected as Paid
+        </button>
+        <button type="button" id="export-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+          Export to Google Sheets
+        </button>
+      </div>
+    </div>
+
+    <.table id="resource-tasks" rows={@tasks_pagination.tasks}>
+      <:col :let={task} label="Select">
+        <input type="checkbox" class="task-checkbox"
+               data-task-id={task.id}
+               data-task-value={task.task_value_dollars}
+               onchange="updateTotal()"
+               {if task.paid, do: [disabled: true], else: []} />
+      </:col>
+      <:col :let={task} label="Task ID"><%= task.task_id %></:col>
+      <:col :let={task} label="User">
+        <%= if task.assigned_user do %>
+          <%= task.assigned_user.name %>
+        <% else %>
+          <span class="text-gray-500">-</span>
+        <% end %>
+      </:col>
+      <:col :let={task} label="Status">
+        <span class={[
+          "inline-flex px-2 text-xs font-semibold rounded-full",
+          case task.status do
+            "pending" -> "bg-yellow-100 text-yellow-800"
+            "in_progress" -> "bg-blue-100 text-blue-800"
+            "completed" -> "bg-green-100 text-green-800"
+          end
+        ]}>
+          <%= String.capitalize(task.status) %>
+        </span>
+      </:col>
+      <:col :let={task} label="Paid">
+        <span class={[
+          "inline-flex px-2 text-xs font-semibold rounded-full",
+          if task.paid do
+            "bg-green-100 text-green-800"
+          else
+            "bg-red-100 text-red-800"
+          end
+        ]}>
+          <%= if task.paid, do: "Paid", else: "Unpaid" %>
+        </span>
+      </:col>
+      <:col :let={task} label="Audio Length"><%= task.audio_length_minutes %> min</:col>
+      <:col :let={task} label="Rate/Hour">$<%= task.rate_per_hour %></:col>
+      <:col :let={task} label="Task Value">$<%= task.task_value_dollars %></:col>
+      <:col :let={task} label="Started">
+        <%= if task.start_datetime do %>
+          <%= Calendar.strftime(task.start_datetime, "%Y-%m-%d %H:%M") %>
+        <% else %>
+          <span class="text-gray-500">Not started</span>
+        <% end %>
+      </:col>
+      <:col :let={task} label="Finished">
+        <%= if task.finished_at do %>
+          <%= Calendar.strftime(task.finished_at, "%Y-%m-%d %H:%M") %>
+        <% else %>
+          <span class="text-gray-500">Not finished</span>
+        <% end %>
+      </:col>
+      <:action :let={task}>
+        <.link navigate={~p"/tasks/#{task}/edit"}>Edit</.link>
+      </:action>
+    </.table>
+
+    <.pagination pagination={@tasks_pagination} base_path={"/resources/#{@resource.id}"} />
+  </div>
+<% end %>
+
+<.back navigate={~p"/resources"}>Back to resources</.back>
+
+<script>
+function updateTotal() {
+  const checkboxes = document.querySelectorAll('.task-checkbox:checked');
+  let total = 0;
+
+  checkboxes.forEach(checkbox => {
+    total += parseFloat(checkbox.getAttribute('data-task-value')) || 0;
+  });
+
+  document.getElementById('total-selected-value').textContent = '$' + total.toFixed(2);
+
+  // Enable/disable buttons
+  const markPaidBtn = document.getElementById('mark-paid-btn');
+  const exportBtn = document.getElementById('export-btn');
+  const hasSelection = checkboxes.length > 0;
+
+  markPaidBtn.disabled = !hasSelection;
+  exportBtn.disabled = !hasSelection;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  const markPaidBtn = document.getElementById('mark-paid-btn');
+  const exportBtn = document.getElementById('export-btn');
+
+  if (markPaidBtn) {
+    markPaidBtn.addEventListener('click', function() {
+      const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
+      const taskIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-task-id'));
+
+      if (taskIds.length === 0) return;
+
+      // Create form to submit task IDs for marking as paid
+      const form = document.createElement('form');
+      form.method = 'POST';
+      form.action = '<%= ~p"/resources/#{@resource.id}/mark_tasks_paid" %>';
+
+      // Add CSRF token
+      const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+      const csrfInput = document.createElement('input');
+      csrfInput.type = 'hidden';
+      csrfInput.name = '_csrf_token';
+      csrfInput.value = csrfToken;
+      form.appendChild(csrfInput);
+
+      // Add task IDs
+      taskIds.forEach(taskId => {
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'task_ids[]';
+        input.value = taskId;
+        form.appendChild(input);
+      });
+
+      document.body.appendChild(form);
+      form.submit();
+    });
+  }
+
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function() {
+      const selectedCheckboxes = document.querySelectorAll('.task-checkbox:checked');
+      const taskIds = Array.from(selectedCheckboxes).map(cb => cb.getAttribute('data-task-id'));
+
+      if (taskIds.length === 0) return;
+
+      // Create export URL with task IDs
+      const params = new URLSearchParams();
+      taskIds.forEach(taskId => params.append('task_ids[]', taskId));
+
+      const exportUrl = '<%= ~p"/resources/#{@resource.id}/export_tasks" %>?' + params.toString();
+      window.open(exportUrl, '_blank');
+    });
+  }
+});
+</script>

@@ -1,0 +1,84 @@
+<.header>
+  Resources
+  <:subtitle>Manage accounts and other resources</:subtitle>
+  <:actions>
+    <%= if @current_user.role == "admin" do %>
+      <.link href={~p"/resources/new"}>
+        <.button>New Resource</.button>
+      </.link>
+    <% end %>
+  </:actions>
+</.header>
+
+<.table id="resources" rows={@pagination.resources} row_click={&JS.navigate(~p"/resources/#{&1}")}>
+  <:col :let={resource} label="Name"><%= resource.name %></:col>
+  <:col :let={resource} label="Type">
+    <span class="inline-flex px-2 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
+      <%= String.capitalize(resource.resource_type) %>
+    </span>
+  </:col>
+  <:col :let={resource} label="Status">
+    <span class={[
+      "inline-flex px-2 text-xs font-semibold rounded-full",
+      case resource.status do
+        "available" -> "bg-green-100 text-green-800"
+        "in_use" -> "bg-red-100 text-red-800"
+        "maintenance" -> "bg-yellow-100 text-yellow-800"
+        "disabled" -> "bg-gray-100 text-gray-800"
+      end
+    ]}>
+      <%= String.replace(resource.status, "_", " ") |> String.capitalize() %>
+    </span>
+  </:col>
+  <:col :let={resource} label="Current User">
+    <%= if resource.current_user do %>
+      <%= resource.current_user.name %>
+    <% else %>
+      <span class="text-gray-500">-</span>
+    <% end %>
+  </:col>
+  <:col :let={resource} label="Description">
+    <%= if resource.description && String.length(resource.description) > 0 do %>
+      <%= String.slice(resource.description, 0, 50) %><%= if String.length(resource.description) > 50, do: "..." %>
+    <% else %>
+      <span class="text-gray-500">-</span>
+    <% end %>
+  </:col>
+  <:col :let={resource} label="Unpaid Balance">
+    <%= if @current_user.role == "admin" do %>
+      <span class="font-semibold text-red-600">
+        $<%= LingoManager.Resources.get_unpaid_balance(resource.id) |> Decimal.to_string() %>
+      </span>
+    <% end %>
+  </:col>
+  <:action :let={resource}>
+    <div class="sr-only">
+      <.link navigate={~p"/resources/#{resource}"}>Show</.link>
+    </div>
+    <%= if resource.status == "available" do %>
+      <.link href={~p"/resources/#{resource}/assign"} method="post" class="text-green-600 hover:text-green-900">
+        Use
+      </.link>
+    <% else %>
+      <%= if resource.current_user_id == @current_user.id do %>
+        <.link href={~p"/resources/#{resource}/release"} method="delete" class="text-red-600 hover:text-red-900">
+          Release
+        </.link>
+      <% end %>
+    <% end %>
+  </:action>
+  <:action :let={resource}>
+    <%= if @current_user.role == "admin" do %>
+      <.link navigate={~p"/resources/#{resource}/edit"}>Edit</.link>
+    <% end %>
+  </:action>
+  <:action :let={resource}>
+    <%= if @current_user.role == "admin" do %>
+      <.link href={~p"/resources/#{resource}"} method="delete" data-confirm="Are you sure?">
+        Delete
+      </.link>
+    <% end %>
+  </:action>
+</.table>
+
+<.pagination pagination={@pagination} base_path="/resources" />

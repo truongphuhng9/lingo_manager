@@ -1,0 +1,27 @@
+<.header>
+  Edit User
+  <:subtitle>Update user information</:subtitle>
+</.header>
+
+<.simple_form :let={f} for={@changeset} action={~p"/admin/users/#{@user}"} method="put">
+  <.error :if={@changeset.action}>
+    Oops, something went wrong! Please check the errors below.
+  </.error>
+  <.input field={f[:name]} type="text" label="Name" required />
+  <.input field={f[:email]} type="email" label="Email" required />
+  <.input field={f[:role]} type="select" label="Role" options={[{"User", "user"}, {"Admin", "admin"}]} required />
+
+  <div class="mt-4 mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+    <p class="text-sm text-yellow-800">
+      Leave password fields empty to keep the current password.
+    </p>
+  </div>
+
+  <.input field={f[:password]} type="password" label="New Password" />
+  <.input field={f[:password_confirmation]} type="password" label="Confirm New Password" />
+  <:actions>
+    <.button>Update User</.button>
+  </:actions>
+</.simple_form>
+
+<.back navigate={~p"/admin/users/#{@user}"}>Back to user</.back>

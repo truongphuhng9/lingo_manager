@@ -206,7 +206,8 @@ defmodule LingoManagerWeb.TaskController do
     if task.assigned_user_id == current_user.id || current_user.role == "admin" do
       changeset = Tasks.change_task(task)
       resource = Resources.get_resource!(task.resource_id)
-      render(conn, :edit, task: task, changeset: changeset, resource: resource)
+      users = if current_user.role == "admin", do: LingoManager.Accounts.list_users(), else: []
+      render(conn, :edit, task: task, changeset: changeset, resource: resource, users: users)
     else
       conn
       |> put_flash(:error, "Access denied.")
@@ -228,7 +229,8 @@ defmodule LingoManagerWeb.TaskController do
 
         {:error, %Ecto.Changeset{} = changeset} ->
           resource = Resources.get_resource!(task.resource_id)
-          render(conn, :edit, task: task, changeset: changeset, resource: resource)
+          users = if current_user.role == "admin", do: LingoManager.Accounts.list_users(), else: []
+          render(conn, :edit, task: task, changeset: changeset, resource: resource, users: users)
       end
     else
       conn

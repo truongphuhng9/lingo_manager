@@ -17,6 +17,12 @@
   </div>
 
   <.input field={f[:task_id]} type="text" label="Task ID" placeholder="Enter unique task ID" required />
+
+  <%= if @users && length(@users) > 0 do %>
+    <.input field={f[:assigned_user_id]} type="select" label="Assigned User"
+           options={[{"Select a user", ""} | Enum.map(@users, &{&1.name <> " (" <> &1.email <> ")", &1.id})]} />
+  <% end %>
+
   <.input field={f[:rate_per_hour]} type="number" label="Rate per Hour (USD)" step="0.01" min="0" required
     id="rate_per_hour" oninput="calculateTaskValue()" />
   <.input field={f[:audio_length_minutes]} type="number" label="Audio Length (minutes)" step="0.01" min="0" required

@@ -1,0 +1,87 @@
+<.header>
+  Account Settings
+  <:subtitle>Manage your account preferences and security</:subtitle>
+</.header>
+
+<div class="space-y-12 divide-y">
+  <div>
+    <div class="grid grid-cols-1 gap-x-8 gap-y-8 pt-10 md:grid-cols-3">
+      <div class="px-4 sm:px-0">
+        <h2 class="text-base font-semibold leading-7 text-gray-900">Profile Information</h2>
+        <p class="mt-1 text-sm leading-6 text-gray-600">
+          Your basic account information.
+        </p>
+      </div>
+
+      <div class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+        <div class="px-4 py-6 sm:p-8">
+          <div class="max-w-2xl space-y-6">
+            <div>
+              <label class="block text-sm font-medium leading-6 text-gray-900">Name</label>
+              <div class="mt-2">
+                <input type="text" value={@current_user.name} disabled
+                       class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium leading-6 text-gray-900">Email</label>
+              <div class="mt-2">
+                <input type="email" value={@current_user.email} disabled
+                       class="block w-full rounded-md border-0 py-1.5 px-3 text-gray-900 bg-gray-50 shadow-sm ring-1 ring-inset ring-gray-300 sm:text-sm sm:leading-6" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-sm font-medium leading-6 text-gray-900">Role</label>
+              <div class="mt-2">
+                <span class={[
+                  "inline-flex px-2 py-1 text-xs font-semibold rounded-full",
+                  case @current_user.role do
+                    "admin" -> "bg-purple-100 text-purple-800"
+                    "user" -> "bg-blue-100 text-blue-800"
+                  end
+                ]}>
+                  <%= String.capitalize(@current_user.role) %>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="grid grid-cols-1 gap-x-8 gap-y-8 pt-10 md:grid-cols-3">
+      <div class="px-4 sm:px-0">
+        <h2 class="text-base font-semibold leading-7 text-gray-900">Change Password</h2>
+        <p class="mt-1 text-sm leading-6 text-gray-600">
+          Update your password to keep your account secure.
+        </p>
+      </div>
+
+      <.simple_form :let={f} for={@changeset} action={~p"/settings/password"} method="put" class="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl md:col-span-2">
+        <div class="px-4 py-6 sm:p-8">
+          <.error :if={@changeset.action}>
+            Oops, something went wrong! Please check the errors below.
+          </.error>
+
+          <div class="max-w-2xl space-y-6">
+            <.input field={f[:current_password]} type="password" label="Current password" required />
+            <.input field={f[:password]} type="password" label="New password" required />
+            <.input field={f[:password_confirmation]} type="password" label="Confirm new password" required />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-x-6 border-t border-gray-900/10 px-4 py-4 sm:px-8">
+          <.button>Update Password</.button>
+        </div>
+      </.simple_form>
+    </div>
+  </div>
+</div>
+
+<div class="mt-6">
+  <.back navigate={~p"/dashboard"}>Back to dashboard</.back>
+</div>

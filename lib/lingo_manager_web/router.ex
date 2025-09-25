@@ -47,6 +47,9 @@ defmodule LingoManagerWeb.Router do
     post "/tasks/:id/complete", TaskController, :complete_task
     post "/tasks/:id/start_time_log", TaskController, :start_time_log
     post "/tasks/stop_time_log", TaskController, :stop_time_log
+
+    get "/settings", UserSettingsController, :show
+    put "/settings/password", UserSettingsController, :update_password
   end
 
   scope "/admin", LingoManagerWeb do

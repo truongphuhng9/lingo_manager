@@ -7,7 +7,7 @@
     </div>
     <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-900">
       <%= if @current_user do %>
-        <span class="text-sm text-zinc-600">Hello, <%= @current_user.name %></span>
+        <.link href={~p"/settings"} class="text-sm text-zinc-600 hover:text-zinc-800">Hello, <%= @current_user.name %></.link>
         <%= if @current_user.role == "admin" do %>
           <.link href={~p"/admin"} class="hover:text-zinc-700">Admin</.link>
         <% end %>

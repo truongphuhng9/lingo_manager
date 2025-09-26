@@ -113,12 +113,16 @@ defmodule LingoManager.Tasks do
     page = Keyword.get(opts, :page, 1)
     per_page = Keyword.get(opts, :per_page, 10)
     search_task_id = Keyword.get(opts, :search_task_id, nil)
+    tab = Keyword.get(opts, :tab, "all")
     offset = (page - 1) * per_page
 
-    base_query = if user.role == "admin" do
-      Task
-    else
-      Task |> where([t], t.assigned_user_id == ^user.id)
+    base_query = cond do
+      user.role == "admin" && tab == "my" ->
+        Task |> where([t], t.assigned_user_id == ^user.id)
+      user.role == "admin" && tab == "all" ->
+        Task
+      true ->
+        Task |> where([t], t.assigned_user_id == ^user.id)
     end
 
     query = base_query

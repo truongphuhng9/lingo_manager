@@ -1,8 +1,12 @@
 <.header>
-  <%= if @current_user.role == "admin", do: "All Tasks", else: "My Tasks" %>
+  <%= if @current_user.role == "admin" do %>
+    <%= if @current_tab == "my", do: "My Tasks", else: "All Tasks" %>
+  <% else %>
+    My Tasks
+  <% end %>
   <:subtitle>
     <%= if @current_user.role == "admin" do %>
-      View and manage all tasks in the system
+      <%= if @current_tab == "my", do: "Your assigned tasks", else: "View and manage all tasks in the system" %>
     <% else %>
       Manage your tasks and time tracking
     <% end %>
@@ -20,8 +24,44 @@
   </:actions>
 </.header>
 
+<%= if @current_user.role == "admin" do %>
+  <div class="mb-6 border-b border-gray-200">
+    <nav class="-mb-px flex space-x-8">
+      <.link
+        href={~p"/tasks?tab=all"}
+        class={[
+          "py-2 px-1 border-b-2 font-medium text-sm",
+          if @current_tab == "all" do
+            "border-blue-500 text-blue-600"
+          else
+            "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          end
+        ]}
+      >
+        All Tasks
+      </.link>
+      <.link
+        href={~p"/tasks?tab=my"}
+        class={[
+          "py-2 px-1 border-b-2 font-medium text-sm",
+          if @current_tab == "my" do
+            "border-blue-500 text-blue-600"
+          else
+            "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          end
+        ]}
+      >
+        My Tasks
+      </.link>
+    </nav>
+  </div>
+<% end %>
+
 <div class="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4">
   <.form :let={f} for={%{}} action={~p"/tasks"} method="get" class="flex items-end gap-4">
+    <%= if @current_user.role == "admin" do %>
+      <.input field={f[:tab]} type="hidden" value={@current_tab} />
+    <% end %>
     <div class="flex-1">
       <.input field={f[:search_task_id]} type="text" label="Search by Task ID"
              placeholder="Enter task ID to search" value={@search_task_id} />
@@ -29,7 +69,10 @@
     <div class="flex gap-2">
       <.button type="submit" class="bg-blue-600 hover:bg-blue-700">Search</.button>
       <%= if @search_task_id do %>
-        <.link href={~p"/tasks"} class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+        <%
+          clear_params = if @current_user.role == "admin" && @current_tab != "all", do: "?tab=#{@current_tab}", else: ""
+        %>
+        <.link href={~p"/tasks#{clear_params}"} class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
           Clear
         </.link>
       <% end %>
@@ -69,7 +112,7 @@
   <:col :let={task} label="Task ID"><%= task.task_id %></:col>
   <:col :let={task} label="Resource"><%= task.resource.name %></:col>
   <:col :let={task} label="Assigned User">
-    <%= if @current_user.role == "admin" do %>
+    <%= if @current_user.role == "admin" && @current_tab == "all" do %>
       <%= if task.assigned_user do %>
         <%= task.assigned_user.name %>
       <% else %>
@@ -125,8 +168,11 @@
 </.table>
 
 <%
-  search_params = if @search_task_id, do: "search_task_id=#{@search_task_id}", else: ""
-  base_path_with_search = if search_params != "", do: "/tasks?#{search_params}&", else: "/tasks?"
+  params_list = []
+  params_list = if @search_task_id, do: params_list ++ ["search_task_id=#{@search_task_id}"], else: params_list
+  params_list = if @current_user.role == "admin" && @current_tab != "all", do: params_list ++ ["tab=#{@current_tab}"], else: params_list
+  params_string = Enum.join(params_list, "&")
+  base_path_with_search = if params_string != "", do: "/tasks?#{params_string}&", else: "/tasks?"
 %>
 
 <div class="mt-6 flex items-center justify-between">

@@ -13,10 +13,11 @@ defmodule LingoManagerWeb.ResourceController do
   def show(conn, %{"id" => id} = params) do
     resource = Resources.get_resource!(id)
     page = String.to_integer(params["page"] || "1")
+    per_page = String.to_integer(params["per_page"] || "10")
 
-    tasks_pagination = LingoManager.Tasks.list_resource_tasks_paginated(id, page: page, per_page: 10)
+    tasks_pagination = LingoManager.Tasks.list_resource_tasks_paginated(id, page: page, per_page: per_page)
 
-    render(conn, :show, resource: resource, tasks_pagination: tasks_pagination)
+    render(conn, :show, resource: resource, tasks_pagination: tasks_pagination, per_page: per_page)
   end
 
   def new(conn, _params) do

@@ -10,11 +10,13 @@ defmodule LingoManagerWeb.TaskController do
     current_user = conn.assigns.current_user
     page = String.to_integer(params["page"] || "1")
     search_task_id = params["search_task_id"]
+    tab = params["tab"] || "all"
 
     tasks_pagination = Tasks.list_tasks_paginated(current_user,
       page: page,
       per_page: 10,
-      search_task_id: search_task_id
+      search_task_id: search_task_id,
+      tab: tab
     )
 
     active_task = if current_user.role != "admin" do
@@ -30,7 +32,8 @@ defmodule LingoManagerWeb.TaskController do
       active_task: active_task,
       active_time_log: active_time_log,
       can_create_task: Tasks.can_create_task?(current_user.id),
-      search_task_id: search_task_id
+      search_task_id: search_task_id,
+      current_tab: tab
     )
   end
 
